@@ -1,5 +1,6 @@
 import requests
 import re
+from PIL import Image
 
 header = {  "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Encoding":"gzip, deflate",
@@ -13,12 +14,14 @@ header = {  "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,imag
 
 username = input('用户名 > ')
 password = input('密码 > ')
-
+print("正在获取验证码...请耐心等待...")
 session = requests.Session()
 session.get("http://jwc.sut.edu.cn/")
 res = session.get("http://jwc.sut.edu.cn/ACTIONVALIDATERANDOMPICTURE.APPPROCESS")
 with open('vcode.jpg', 'wb') as f:
     f.write(res.content)
+im = Image.open('vcode.jpg')
+im.show()
 
 vcode = input('验证码 > ')
 
@@ -43,7 +46,6 @@ for each in allurl:
     page = res.text
     courses += re.findall(com, page)
 
-#print(courses)
 print("共发现 {0} 个需要课评的课程。".format(len(courses)))
 i = 1
 
@@ -65,7 +67,6 @@ for each in courses:
     com5 = re.compile(reg6)
     com6 = re.compile(reg7)
     com7 = re.compile(reg2)
-    #fenlist = list(set(re.findall(com6, page)))
     params = {  'ItemTypeScore1': "98",
                 'ItemTypeID': "1",
                 'SeriesID' : str(re.findall(com1, page)[0]),
@@ -84,8 +85,8 @@ for each in courses:
                 'Score1_7': '100',
                 'ResultID': ['1_1','1_2','1_3','1_4','1_5','1_6','1_7']
                 }
-    #print(params)
     print("课评进度({0}/{1})...".format(i, len(courses)))
     i += 1
     session.post("http://jwc.sut.edu.cn/ACTIONJSUPDATECONTENTRESULT.APPPROCESS", data=params, headers=header)
+
 print("已全部完成！")
