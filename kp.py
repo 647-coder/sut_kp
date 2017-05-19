@@ -1,7 +1,12 @@
+#coding: utf:8
 import requests
 import re
 import sys
+import pytesseract
+import os
 from PIL import Image
+
+print("欢迎使用沈阳工业大学自动教评系统。Github: github.com/647-coder/sut_kp。")
 
 header = {  "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Encoding":"gzip, deflate",
@@ -33,8 +38,8 @@ while True:
     with open('vcode.jpg', 'wb') as f:
         f.write(res.content)
     im = Image.open('vcode.jpg')
-    im.show()
-    vcode = input('验证码 > ')
+    vcode = pytesseract.image_to_string(im)
+
     loginparams = { 'WebUserNO' : username,
                     'Password' : password,
                     'Agnomen' : vcode,
@@ -45,15 +50,16 @@ while True:
     login = session.post("http://jwc.sut.edu.cn/ACTIONLOGON.APPPROCESS", data=loginparams, headers=header)
     loginpage = login.text
     
-    if "个人信息" in loginpage:
+    if u"个人信息" in loginpage:
         print("登录成功！")
         break
-    elif "错误的" in loginpage:
-        print("用户名或密码错误, 请重新输入：")
-        username = input('用户名 > ')
-        password = input('密码 > ')
+    elif u"错误的" in loginpage:
+        print("用户名或密码错误。")
+        os._exit(1)
+        #username = input('用户名 > ')
+        #password = input('密码 > ')
     else:
-        print("验证码错误，请重新输入。")
+        print("自动识别验证码错误，正在重新尝试...")
 
 session.get("http://jwc.sut.edu.cn/ACTIONJSATTENDAPPRAISE_001.APPPROCESS", headers=header)
 res = session.get("http://jwc.sut.edu.cn/ACTIONJSCHOSEAPPRAISESERIESID.APPPROCESS", headers=header)
@@ -112,3 +118,5 @@ for each in courses:
     session.post("http://jwc.sut.edu.cn/ACTIONJSUPDATECONTENTRESULT.APPPROCESS", data=params, headers=header)
 
 print("已全部完成！")
+
+os._exit(0)
