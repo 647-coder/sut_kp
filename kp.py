@@ -1,5 +1,6 @@
 import requests
 import re
+import sys
 from PIL import Image
 
 header = {  "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -12,27 +13,48 @@ header = {  "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,imag
             "User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
             }
 
-username = input('用户名 > ')
-password = input('密码 > ')
-print("正在获取验证码...请耐心等待...")
+username = None
+passowrd = None
+
+if len(sys.argv) >= 3:
+    username = sys.argv[1]
+    password = sys.argv[2]
+else:
+    username = input('用户名 > ')
+    password = input('密码 > ')
+
+print("正在登录...账号：{0} 密码：{1}".format(username, password))
+
 session = requests.Session()
 session.get("http://jwc.sut.edu.cn/")
-res = session.get("http://jwc.sut.edu.cn/ACTIONVALIDATERANDOMPICTURE.APPPROCESS")
-with open('vcode.jpg', 'wb') as f:
-    f.write(res.content)
-im = Image.open('vcode.jpg')
-im.show()
 
-vcode = input('验证码 > ')
+while True:
+    res = session.get("http://jwc.sut.edu.cn/ACTIONVALIDATERANDOMPICTURE.APPPROCESS")
+    with open('vcode.jpg', 'wb') as f:
+        f.write(res.content)
+    im = Image.open('vcode.jpg')
+    im.show()
+    vcode = input('验证码 > ')
+    loginparams = { 'WebUserNO' : username,
+                    'Password' : password,
+                    'Agnomen' : vcode,
+                    'submit.x': '30' ,
+                    'submit.y' : '20'
+                    }
 
-loginparams = { 'WebUserNO' : username,
-                'Password' : password,
-                'Agnomen' : vcode,
-                'submit.x': '30' ,
-                'submit.y' : '20'
-                }
+    login = session.post("http://jwc.sut.edu.cn/ACTIONLOGON.APPPROCESS", data=loginparams, headers=header)
+    loginpage = login.text
+    
+    if "个人信息" in loginpage:
+        print("登录成功！")
+        break
+    elif "错误的" in loginpage:
+        print("用户名或密码错误, 请重新输入：")
+        username = input('用户名 > ')
+        password = input('密码 > ')
+    else:
+        print("验证码错误，请重新输入。")
 
-session.post("http://jwc.sut.edu.cn/ACTIONLOGON.APPPROCESS", data=loginparams, headers=header)
 session.get("http://jwc.sut.edu.cn/ACTIONJSATTENDAPPRAISE_001.APPPROCESS", headers=header)
 res = session.get("http://jwc.sut.edu.cn/ACTIONJSCHOSEAPPRAISESERIESID.APPPROCESS", headers=header)
 reg = "javascript:document.location='(.+)';"
