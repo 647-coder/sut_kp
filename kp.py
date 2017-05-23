@@ -1,4 +1,4 @@
-#coding: utf:8
+#coding: utf-8
 import requests
 import re
 import sys
@@ -31,15 +31,23 @@ else:
 print("正在登录...账号：{0} 密码：{1}".format(username, password))
 
 session = requests.Session()
+s.headers.update(header)
 session.get("http://jwc.sut.edu.cn/")
+
+tryflag = 1
 
 while True:
     res = session.get("http://jwc.sut.edu.cn/ACTIONVALIDATERANDOMPICTURE.APPPROCESS")
     with open('vcode.jpg', 'wb') as f:
         f.write(res.content)
     im = Image.open('vcode.jpg')
-    vcode = pytesseract.image_to_string(im)
 
+    try:
+        import pytesseract
+        vcode = pytesseract.image_to_string(im)
+    except:
+        im.show()
+        vcode = input('验证码 > ')
     loginparams = { 'WebUserNO' : username,
                     'Password' : password,
                     'Agnomen' : vcode,
@@ -47,9 +55,9 @@ while True:
                     'submit.y' : '20'
                     }
 
-    login = session.post("http://jwc.sut.edu.cn/ACTIONLOGON.APPPROCESS", data=loginparams, headers=header)
+    login = session.post("http://jwc.sut.edu.cn/ACTIONLOGON.APPPROCESS", data=loginparams)
     loginpage = login.text
-    
+
     if u"个人信息" in loginpage:
         print("登录成功！")
         break
@@ -60,9 +68,13 @@ while True:
         #password = input('密码 > ')
     else:
         print("自动识别验证码错误，正在重新尝试...")
+    if tryflag >= 3:
+        print("尝试次数，程序终止。")
+        os._exit(1)
+    tryflag += 1
 
-session.get("http://jwc.sut.edu.cn/ACTIONJSATTENDAPPRAISE_001.APPPROCESS", headers=header)
-res = session.get("http://jwc.sut.edu.cn/ACTIONJSCHOSEAPPRAISESERIESID.APPPROCESS", headers=header)
+session.get("http://jwc.sut.edu.cn/ACTIONJSATTENDAPPRAISE_001.APPPROCESS")
+res = session.get("http://jwc.sut.edu.cn/ACTIONJSCHOSEAPPRAISESERIESID.APPPROCESS")
 reg = "javascript:document.location='(.+)';"
 com = re.compile(reg)
 allurl = re.findall(com, res.text)
@@ -70,7 +82,7 @@ allurl = re.findall(com, res.text)
 courses = []
 for each in allurl:
     tempurl = 'http://jwc.sut.edu.cn/' + each
-    res = session.get(tempurl, headers=header)
+    res = session.get(tempurl)
     page = res.text
     courses += re.findall(com, page)
 
@@ -79,7 +91,7 @@ i = 1
 
 for each in courses:
     tempurl = 'http://jwc.sut.edu.cn/' + each
-    res = session.get(tempurl, headers=header)
+    res = session.get(tempurl)
     page = res.text
     reg1 = '<input type="hidden" name="SeriesID" value="([0-9]+)">'
     reg2 = 'name="adjustCode" value="([0-9]+)"'
@@ -115,7 +127,7 @@ for each in courses:
                 }
     print("课评进度({0}/{1})...".format(i, len(courses)))
     i += 1
-    session.post("http://jwc.sut.edu.cn/ACTIONJSUPDATECONTENTRESULT.APPPROCESS", data=params, headers=header)
+    session.post("http://jwc.sut.edu.cn/ACTIONJSUPDATECONTENTRESULT.APPPROCESS", data=params)
 
 print("已全部完成！")
 
